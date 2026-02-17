@@ -120,9 +120,10 @@ def get_pdf_info(pdf_path, sample_pages=2, zoom=0.25, color_threshold=10):
 # ---------------------------------------------------------------------
 
 FIELDNAMES = [
-    'Name','DisplayName','Type','ProductId','Icon','Active','TurnAroundTime',
+    'Name','DisplayName','Type','ProductId','Icon','DetailImage','Active','TurnAroundTime',
     'TurnAroundTimeUnit','QuantityType','MaxOrderQuantityPermitted','Quantities',
-    'MaxQuantityPerSubcontainer','ContentFile','TicketTemplate',
+    'MaxQuantityPerSubcontainer','WeightValue','WeightUnit','WidthValue',
+    'LengthValue','HeightValue','DimensionUnit','ContentFile','TicketTemplate',
     'ProductNameToCopySecuritySettings','Storefront/Categories'
 ]
 
@@ -422,20 +423,28 @@ def make_csv_rows(customer, books, assets_per_book):
 
 
         # --- COVER (Document) ---
-        cover_name = f"{title} CVR {raw_size}"
+        cover_name = f"{title} {binding} CVR {raw_size}"
+        cover_display_name = f"{title} {binding} (Cover)"
         rows.append({
             'Name': cover_name,
-            'DisplayName': cover_name + (" w/SpotUV" if has_spot else ""),
+            'DisplayName': cover_display_name,
             'Type': 'Document',
             'ProductId': isbn,
-            'Icon': '',
+            'Icon': 'AutoThumbnail',
+            'DetailImage': 'AutoThumbnail',
             'Active': 'TRUE',
             'TurnAroundTime': '',
             'TurnAroundTimeUnit': '',
             'QuantityType': '',
             'MaxOrderQuantityPermitted': '',
             'Quantities': '',
-            'MaxQuantityPerSubcontainer': '',
+            'MaxQuantityPerSubcontainer': '1',
+            'WeightValue': '1',
+            'WeightUnit': 'oz',
+            'WidthValue': '',
+            'LengthValue': '',
+            'HeightValue': '.25',
+            'DimensionUnit': 'Inches',
             'ContentFile': cover_file,
             'TicketTemplate': cover_ticket,
             'ProductNameToCopySecuritySettings': '',
@@ -443,20 +452,28 @@ def make_csv_rows(customer, books, assets_per_book):
         })
 
         # --- GUTS (Document) ---
-        guts_name = f"{title} TXT {'4/4' if color_type.startswith('4') else '1/1'} {raw_size}"
+        guts_name = f"{title} {binding} TXT {'4/4' if color_type.startswith('4') else '1/1'} {raw_size}"
+        guts_display_name = f"{title} {binding} (Text)"
         rows.append({
             'Name': guts_name,
-            'DisplayName': guts_name,
+            'DisplayName': guts_display_name,
             'Type': 'Document',
             'ProductId': isbn,
-            'Icon': '',
+            'Icon': 'AutoThumbnail',
+            'DetailImage': 'AutoThumbnail',
             'Active': 'TRUE',
             'TurnAroundTime': '',
             'TurnAroundTimeUnit': '',
             'QuantityType': '',
             'MaxOrderQuantityPermitted': '',
             'Quantities': '',
-            'MaxQuantityPerSubcontainer': '',
+            'MaxQuantityPerSubcontainer': '1',
+            'WeightValue': '1',
+            'WeightUnit': 'oz',
+            'WidthValue': '',
+            'LengthValue': '',
+            'HeightValue': '.25',
+            'DimensionUnit': 'Inches',
             'ContentFile': guts_file,
             'TicketTemplate': guts_ticket,
             'ProductNameToCopySecuritySettings': '',
@@ -465,20 +482,28 @@ def make_csv_rows(customer, books, assets_per_book):
 
         # --- SPOT UV (Document, optional) ---
         if has_spot:
-            spot_name = f"{title} (Spot UV)"
+            spot_name = f"{title} SPOTUV {binding} {raw_size}"
+            spot_display_name = f"{title} {binding} (SpotUV)"
             rows.append({
                 'Name': spot_name,
-                'DisplayName': spot_name,
+                'DisplayName': spot_display_name,
                 'Type': 'Document',
                 'ProductId': isbn,
-                'Icon': '',
+                'Icon': 'AutoThumbnail',
+                'DetailImage': 'AutoThumbnail',
                 'Active': 'TRUE',
                 'TurnAroundTime': '',
                 'TurnAroundTimeUnit': '',
                 'QuantityType': '',
                 'MaxOrderQuantityPermitted': '',
                 'Quantities': '',
-                'MaxQuantityPerSubcontainer': '',
+                'MaxQuantityPerSubcontainer': '1',
+                'WeightValue': '1',
+                'WeightUnit': 'oz',
+                'WidthValue': '',
+                'LengthValue': '',
+                'HeightValue': '.25',
+                'DimensionUnit': 'Inches',
                 'ContentFile': spot_file,
                 'TicketTemplate': '*SPOTUV 13x19',
                 'ProductNameToCopySecuritySettings': '',
@@ -486,17 +511,19 @@ def make_csv_rows(customer, books, assets_per_book):
             })
 
         # --- KIT ---
-        kit_name = f"{title} {raw_size}"
+        kit_name = f"Book {title} {binding} {raw_size}"
+        kit_display_name = f"{title} {binding}"
         t_days = turnaround_days(binding, color_type.startswith('4'), has_spot, size_cat)
         qty_type = "Any" if (customer == "Emerging Bookshelf" or pod) else "Multiple"
         storefront = "DESERET BOOK STORE Storefront"
 
         rows.append({
             'Name': kit_name,
-            'DisplayName': title,
+            'DisplayName': kit_display_name,
             'Type': 'Kit',
             'ProductId': isbn,
             'Icon': cover_file,  #If we want this to take the screenshot Product Image instead (like we used to), then use image_file instead. I will leave all the logic in place to do this just in case.
+            'DetailImage': cover_file,
             'Active': 'TRUE',
             'TurnAroundTime': t_days,
             'TurnAroundTimeUnit': 'Day',
@@ -504,6 +531,12 @@ def make_csv_rows(customer, books, assets_per_book):
             'MaxOrderQuantityPermitted': '5000',
             'Quantities': '' if qty_type == 'Any' else '3-5000-3',
             'MaxQuantityPerSubcontainer': '1',
+            'WeightValue': '1',
+            'WeightUnit': 'oz',
+            'WidthValue': '',
+            'LengthValue': '',
+            'HeightValue': '.25',
+            'DimensionUnit': 'Inches',
             'ContentFile': '',
             'TicketTemplate': '',
             'ProductNameToCopySecuritySettings': 'zz DO NOT DELETE - DB Security Settings Template',
