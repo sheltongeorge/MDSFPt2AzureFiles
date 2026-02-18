@@ -423,7 +423,11 @@ def make_csv_rows(customer, books, assets_per_book):
 
 
         # --- COVER (Document) ---
-        cover_name = f"{title} {binding} CVR {raw_size}"
+        cover_name = (
+            f"{title} {binding} CVR w/ SpotUV {raw_size}"
+            if has_spot else
+            f"{title} {binding} CVR {raw_size}"
+        )
         cover_display_name = f"{title} {binding} (Cover)"
         rows.append({
             'Name': cover_name,
