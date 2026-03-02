@@ -128,8 +128,24 @@ FIELDNAMES = [
 ]
 
 def parse_metadata_json(meta_json):
+    """
+    Parse ingest metadata into unique book records.
+    Some payloads repeat the same metadata for each uploaded file (cover/interior),
+    so we keep only the first occurrence for each logical book key.
+    """
+    if isinstance(meta_json, dict):
+        items = [meta_json]
+    elif isinstance(meta_json, list):
+        items = meta_json
+    else:
+        return []
+
     books = []
-    for item in meta_json:
+    seen = set()
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
         md_list = item.get("metadata") or []
         for md in md_list:
             # skip non-book metadata blobs
@@ -153,6 +169,22 @@ def parse_metadata_json(meta_json):
                 "upload type": upload_type,
                 "is pod": "yes" if upload_type.strip().lower() == "print on demand" else "no",
             }
+
+            # De-duplicate metadata repeated across uploaded files.
+            dedupe_key = (
+                book["title"].lower(),
+                book["isbn"],
+                book["final size"].lower(),
+                book["binding"].lower(),
+                book["lamination"].lower(),
+                book["cover paper"].lower(),
+                book["guts paper"].lower(),
+                book["embellishment"].lower(),
+                book["upload type"].lower(),
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             books.append(book)
     return books
 
