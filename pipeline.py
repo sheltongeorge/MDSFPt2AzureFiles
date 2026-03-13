@@ -1,4 +1,4 @@
-import os
+﻿import os
 import csv
 import zipfile
 import re
@@ -35,8 +35,8 @@ cover_data = [
     {"binding": "PB", "lamination": "Matte", "pt": "10pt", "final_size": "6x9 to 8.5x11", "is_pod": "no", "spot_uv_pdf": "none", "ticket_template": "*CVR C1S10PT Matte md"},
     {"binding": "PB", "lamination": "Matte", "pt": "10pt", "final_size": "greater than 8.5x11", "is_pod": "no", "spot_uv_pdf": "none", "ticket_template": "*CVR C1S10PT Matte Oversized"},
     {"binding": "PB", "lamination": "Soft Touch", "pt": "12pt", "final_size": "less than or equal to 6x9", "is_pod": "no", "spot_uv_pdf": "none", "ticket_template": "*CVR C1S12PT Soft sm SPOTUV"},
-    {"binding": "SS", "lamination": "Matte", "pt": "10pt", "final_size": "less than or equal to 6x9", "is_pod": "no", "spot_uv_pdf": "yes", "ticket_template": "*SS CVR C1S10PT Matte ≤6x9 SPOTUV"},
-    {"binding": "SS", "lamination": "Matte", "pt": "10pt", "final_size": "less than or equal to 6x9", "is_pod": "no", "spot_uv_pdf": "none", "ticket_template": "*SS CVR C1S10PT MATTE ≤6x9"},
+    {"binding": "SS", "lamination": "Matte", "pt": "10pt", "final_size": "less than or equal to 6x9", "is_pod": "no", "spot_uv_pdf": "yes", "ticket_template": "*SS CVR C1S10PT Matte â‰¤6x9 SPOTUV"},
+    {"binding": "SS", "lamination": "Matte", "pt": "10pt", "final_size": "less than or equal to 6x9", "is_pod": "no", "spot_uv_pdf": "none", "ticket_template": "*SS CVR C1S10PT MATTE â‰¤6x9"},
     {"binding": "PB", "lamination": "Gloss", "pt": "10pt", "final_size": "Any", "is_pod": "yes", "spot_uv_pdf": "none", "ticket_template": "*CVR 4/4 C1S10PT Gloss sm POD"},
     {"binding": "PB", "lamination": "Matte", "pt": "10pt", "final_size": "Any", "is_pod": "yes", "spot_uv_pdf": "none", "ticket_template": "*CVR 4/4 C1S10PT Matte sm POD"},
     {"binding": "HB", "lamination": "Matte", "pt": "12pt", "final_size": "Any", "is_pod": "no", "spot_uv_pdf": "none", "ticket_template": "*HB/PB CVR MATTE (Must Hardcode Price)"},
@@ -65,7 +65,7 @@ guts_data = [
     {"binding": "HB", "guts_paper": "Fine", "color_type": "4-Apr", "final_size": "6x9 to 8.5x11", "ticket_template": "*HB/PB TXT 4/4 65# md"},
     {"binding": "HB", "guts_paper": "Fine", "color_type": "4-Apr", "final_size": "less than or equal to 6x9", "ticket_template": "*HB/PB TXT 4/4 65# sm"},
     {"binding": "HB", "guts_paper": "Standard", "color_type": "1-Jan", "final_size": "less than or equal to 6x9", "ticket_template": "*HB/PB TXT 1/1 60# sm"},
-    {"binding": "HB", "guts_paper": "Standard", "color_type": "1-Jan", "final_size": "6x9 to 8.5x11", "ticket_template": "*HB/PB TXT 1/1 WEB60 20\" (6x9–8.5x11)"},
+    {"binding": "HB", "guts_paper": "Standard", "color_type": "1-Jan", "final_size": "6x9 to 8.5x11", "ticket_template": "*HB/PB TXT 1/1 WEB60 20\" (6x9â€“8.5x11)"},
     {"binding": "PB", "guts_paper": "White Hi Bulk", "color_type": "1-Jan", "final_size": "less than or equal to 6x9", "ticket_template": "*TXT 1/1 50# Hi Bulk White 0.0045 sm"},
     {"binding": "PB", "guts_paper": "Cream Hi Bulk", "color_type": "1-Jan", "final_size": "less than or equal to 6x9", "ticket_template": "*TXT 1/1 50# Hi Bulk Cream 0.0045 sm"},
     {"binding": "PB", "guts_paper": "White Hi Bulk", "color_type": "1-Jan", "final_size": "6x9 to 8.5x11", "ticket_template": "*TXT 1/1 65# Coated 0.0048 md"},
@@ -122,7 +122,7 @@ def get_pdf_info(pdf_path, sample_pages=2, zoom=0.25, color_threshold=10):
 FIELDNAMES = [
     'Name','DisplayName','Type','ProductId','Icon','DetailImage','Active','TurnAroundTime',
     'TurnAroundTimeUnit','QuantityType','MaxOrderQuantityPermitted','Quantities',
-    'MaxQuantityPerSubcontainer','WeightValue','WeightUnit','WidthValue',
+    'MaxQuantityPerSubcontainer','WidthValue',
     'LengthValue','HeightValue','DimensionUnit','ContentFile','TicketTemplate',
     'ProductNameToCopySecuritySettings','Storefront/Categories'
 ]
@@ -236,6 +236,12 @@ def parse_size_label(size_str: str) -> str:
         return "6x9 to 8.5x11"
     # otherwise greater than 8.5x11
     return "greater than 8.5x11"
+
+def extract_dimensions(size_str: str) -> tuple[str, str]:
+    nums = re.findall(r"[\d.]+", size_str or "")
+    if len(nums) < 2:
+        return "", ""
+    return nums[0], nums[1]
 
 def detect_has_spot(raw_embellishment: str) -> bool:
     return 'spot' in (raw_embellishment or '').strip().lower()
@@ -428,6 +434,7 @@ def make_csv_rows(customer, books, assets_per_book):
         title = (book.get('title') or "").strip()
         isbn = (book.get('isbn') or "").strip()
         raw_size = (book.get('final size') or "").strip()
+        width_value, length_value = extract_dimensions(raw_size)
         size_cat = parse_size_label(raw_size)
 
         binding = normalize_binding(book.get('binding') or "")
@@ -475,10 +482,8 @@ def make_csv_rows(customer, books, assets_per_book):
             'MaxOrderQuantityPermitted': '',
             'Quantities': '',
             'MaxQuantityPerSubcontainer': '1',
-            'WeightValue': '1',
-            'WeightUnit': 'oz',
-            'WidthValue': '',
-            'LengthValue': '',
+            'WidthValue': width_value,
+            'LengthValue': length_value,
             'HeightValue': '.25',
             'DimensionUnit': 'Inches',
             'ContentFile': cover_file,
@@ -504,10 +509,8 @@ def make_csv_rows(customer, books, assets_per_book):
             'MaxOrderQuantityPermitted': '',
             'Quantities': '',
             'MaxQuantityPerSubcontainer': '1',
-            'WeightValue': '1',
-            'WeightUnit': 'oz',
-            'WidthValue': '',
-            'LengthValue': '',
+            'WidthValue': width_value,
+            'LengthValue': length_value,
             'HeightValue': '.25',
             'DimensionUnit': 'Inches',
             'ContentFile': guts_file,
@@ -534,10 +537,8 @@ def make_csv_rows(customer, books, assets_per_book):
                 'MaxOrderQuantityPermitted': '',
                 'Quantities': '',
                 'MaxQuantityPerSubcontainer': '1',
-                'WeightValue': '1',
-                'WeightUnit': 'oz',
-                'WidthValue': '',
-                'LengthValue': '',
+                'WidthValue': width_value,
+                'LengthValue': length_value,
                 'HeightValue': '.25',
                 'DimensionUnit': 'Inches',
                 'ContentFile': spot_file,
@@ -567,10 +568,8 @@ def make_csv_rows(customer, books, assets_per_book):
             'MaxOrderQuantityPermitted': '5000',
             'Quantities': '' if qty_type == 'Any' else '3-5000-3',
             'MaxQuantityPerSubcontainer': '1',
-            'WeightValue': '1',
-            'WeightUnit': 'oz',
-            'WidthValue': '',
-            'LengthValue': '',
+            'WidthValue': width_value,
+            'LengthValue': length_value,
             'HeightValue': '.25',
             'DimensionUnit': 'Inches',
             'ContentFile': '',
@@ -648,5 +647,6 @@ def run_pipeline(folder_path: str) -> dict:
         "csv_path": csv_path,
         "zip_path": zip_path
     }
+
 
 
